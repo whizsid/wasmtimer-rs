@@ -229,7 +229,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::Instant;
+use crate::std::Instant;
 use std::cmp::Ordering;
 use std::mem;
 use std::pin::Pin;
@@ -248,9 +248,6 @@ use heap::{Heap, Slot};
 mod arc_list;
 mod global;
 mod heap;
-
-pub mod ext;
-pub use ext::{TryFutureExt, TryStreamExt};
 
 /// A "timer heap" used to power separately owned instances of `Delay` and
 /// `Interval`.
@@ -283,11 +280,6 @@ pub struct Timer {
 pub struct TimerHandle {
     inner: Weak<Inner>,
 }
-
-mod delay;
-mod interval;
-pub use self::delay::Delay;
-pub use self::interval::Interval;
 
 struct Inner {
     /// List of updates the `Timer` needs to process
@@ -537,48 +529,6 @@ impl TimerHandle {
 }
 
 impl Default for TimerHandle {
-    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
-    fn default() -> TimerHandle {
-        let mut fallback = HANDLE_FALLBACK.load(SeqCst);
-
-        // If the fallback hasn't been previously initialized then let's spin
-        // up a helper thread and try to initialize with that. If we can't
-        // actually create a helper thread then we'll just return a "defunkt"
-        // handle which will return errors when timer objects are attempted to
-        // be associated.
-        if fallback == 0 {
-            let helper = match global::HelperThread::new() {
-                Ok(helper) => helper,
-                Err(_) => return TimerHandle { inner: Weak::new() },
-            };
-
-            // If we successfully set ourselves as the actual fallback then we
-            // want to `forget` the helper thread to ensure that it persists
-            // globally. If we fail to set ourselves as the fallback that means
-            // that someone was racing with this call to
-            // `TimerHandle::default`.  They ended up winning so we'll destroy
-            // our helper thread (which shuts down the thread) and reload the
-            // fallback.
-            if helper.handle().set_as_global_fallback().is_ok() {
-                let ret = helper.handle();
-                helper.forget();
-                return ret;
-            }
-            fallback = HANDLE_FALLBACK.load(SeqCst);
-        }
-
-        // At this point our fallback handle global was configured so we use
-        // its value to reify a handle, clone it, and then forget our reified
-        // handle as we don't actually have an owning reference to it.
-        assert!(fallback != 0);
-        unsafe {
-            let handle = TimerHandle::from_usize(fallback);
-            let ret = handle.clone();
-            drop(handle.into_usize());
-            return ret;
-        }
-    }
-
     #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
     fn default() -> TimerHandle {
         let mut fallback = HANDLE_FALLBACK.load(SeqCst);

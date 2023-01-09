@@ -1,22 +1,20 @@
 [package]
-name = "wasm-timer"
-edition = "2018"
+name = "wasmtimer"
+edition = "2021"
 description = "Abstraction over std::time::Instant and futures-timer that works on WASM"
-version = "0.2.5"
-authors = ["Pierre Krieger <pierre.krieger1708@gmail.com>"]
+version = "0.0.1"
+authors = ["WhizSid <whizsid@aol.com>"]
 license = "MIT"
-repository = "https://github.com/tomaka/wasm-timer"
+repository = "https://github.com/whizsid/wasmtimer-rs"
 
 [dependencies]
-futures = "0.3.1"
-parking_lot = "0.11"
+futures = "0.3"
+parking_lot = "0.12"
 pin-utils = "0.1.0"
-
-[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
-js-sys = "0.3.31"
-wasm-bindgen = "0.2.37"
-wasm-bindgen-futures = "0.4.4"
-web-sys = { version = "0.3.31", features = ["Performance", "Window"] }
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["Performance", "Window"] }
 
 [dev-dependencies]
 async-std = "1.0"

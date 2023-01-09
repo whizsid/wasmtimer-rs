@@ -17,14 +17,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
-
-pub use timer::*;
-
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
-pub use std::time::{Instant, SystemTime, UNIX_EPOCH};
-#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
-pub use wasm::*;
-
-mod timer;
-#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
-mod wasm;
+pub(crate) mod timer;
+pub mod std;
+pub mod tokio;

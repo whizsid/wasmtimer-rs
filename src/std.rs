@@ -19,10 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#![cfg(all(target_arch = "wasm32", target_os = "unknown"))]
-
-use std::cmp::{Eq, PartialEq, Ord, PartialOrd, Ordering};
-use std::ops::{Add, Sub, AddAssign, SubAssign};
+use std::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
 
 #[derive(Debug, Copy, Clone)]
@@ -77,7 +75,9 @@ impl Add<Duration> for Instant {
 
     fn add(self, other: Duration) -> Instant {
         let new_val = self.inner + other.as_millis() as f64;
-        Instant { inner: new_val as f64 }
+        Instant {
+            inner: new_val as f64,
+        }
     }
 }
 
@@ -86,7 +86,9 @@ impl Sub<Duration> for Instant {
 
     fn sub(self, other: Duration) -> Instant {
         let new_val = self.inner - other.as_millis() as f64;
-        Instant { inner: new_val as f64 }
+        Instant {
+            inner: new_val as f64,
+        }
     }
 }
 
@@ -106,6 +108,14 @@ pub const UNIX_EPOCH: SystemTime = SystemTime { inner: 0.0 };
 pub struct SystemTime {
     /// Unit is milliseconds.
     inner: f64,
+}
+
+pub struct SystemTimeError(Duration);
+
+impl SystemTimeError {
+    pub fn duration(&self) -> Duration {
+        self.0
+    }
 }
 
 impl PartialEq for SystemTime {
@@ -138,16 +148,16 @@ impl SystemTime {
         SystemTime { inner: val }
     }
 
-    pub fn duration_since(&self, earlier: SystemTime) -> Result<Duration, ()> {
+    pub fn duration_since(&self, earlier: SystemTime) -> Result<Duration, SystemTimeError> {
         let dur_ms = self.inner - earlier.inner;
         if dur_ms < 0.0 {
-            return Err(())
+            return Err(SystemTimeError(Duration::from_millis(dur_ms.abs() as u64)));
         }
         Ok(Duration::from_millis(dur_ms as u64))
     }
 
-    pub fn elapsed(&self) -> Result<Duration, ()> {
-        self.duration_since(SystemTime::now())
+    pub fn elapsed(&self) -> Result<Duration, SystemTimeError> {
+        SystemTime::now().duration_since(*self)
     }
 
     pub fn checked_add(&self, duration: Duration) -> Option<SystemTime> {
@@ -164,7 +174,9 @@ impl Add<Duration> for SystemTime {
 
     fn add(self, other: Duration) -> SystemTime {
         let new_val = self.inner + other.as_millis() as f64;
-        SystemTime { inner: new_val as f64 }
+        SystemTime {
+            inner: new_val as f64,
+        }
     }
 }
 
@@ -173,7 +185,9 @@ impl Sub<Duration> for SystemTime {
 
     fn sub(self, other: Duration) -> SystemTime {
         let new_val = self.inner - other.as_millis() as f64;
-        SystemTime { inner: new_val as f64 }
+        SystemTime {
+            inner: new_val as f64,
+        }
     }
 }
 

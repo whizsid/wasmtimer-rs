@@ -244,7 +244,7 @@ use futures::task::AtomicWaker;
 use arc_list::{ArcList, Node};
 use heap::{Heap, Slot};
 
-mod arc_list;
+pub(crate) mod arc_list;
 mod global;
 mod heap;
 
@@ -277,33 +277,33 @@ pub struct Timer {
 /// A handle to a `Timer` which is used to create instances of a `Delay`.
 #[derive(Clone)]
 pub struct TimerHandle {
-    inner: Weak<Inner>,
+    pub inner: Weak<Inner>,
 }
 
-struct Inner {
+pub struct Inner {
     /// List of updates the `Timer` needs to process
-    list: ArcList<ScheduledTimer>,
+    pub list: ArcList<ScheduledTimer>,
 
     /// The blocked `Timer` task to receive notifications to the `list` above.
-    waker: AtomicWaker,
+    pub waker: AtomicWaker,
 }
 
 /// Shared state between the `Timer` and a `Delay`.
-struct ScheduledTimer {
-    waker: AtomicWaker,
+pub struct ScheduledTimer {
+    pub waker: AtomicWaker,
 
     // The lowest bit here is whether the timer has fired or not, the second
     // lowest bit is whether the timer has been invalidated, and all the other
     // bits are the "generation" of the timer which is reset during the `reset`
     // function. Only timers for a matching generation are fired.
-    state: AtomicUsize,
+    pub state: AtomicUsize,
 
-    inner: Weak<Inner>,
-    at: Mutex<Option<Instant>>,
+    pub inner: Weak<Inner>,
+    pub at: Mutex<Option<Instant>>,
 
     // TODO: this is only accessed by the timer thread, should have a more
     // lightweight protection than a `Mutex`
-    slot: Mutex<Option<Slot>>,
+    pub slot: Mutex<Option<Slot>>,
 }
 
 /// Entries in the timer heap, sorted by the instant they're firing at and then

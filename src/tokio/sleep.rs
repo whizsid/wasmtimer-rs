@@ -13,7 +13,7 @@ use std::time::Duration;
 
 pub struct Sleep {
     state: Option<Arc<Node<ScheduledTimer>>>,
-    when: Instant,
+    deadline: Instant,
 }
 
 impl Sleep {
@@ -46,7 +46,7 @@ impl Sleep {
             None => {
                 return Sleep {
                     state: None,
-                    when: at,
+                    deadline: at,
                 }
             }
         };
@@ -64,20 +64,20 @@ impl Sleep {
         if inner.list.push(&state).is_err() {
             return Sleep {
                 state: None,
-                when: at,
+                deadline: at,
             };
         }
 
         inner.waker.wake();
         Sleep {
             state: Some(state),
-            when: at,
+            deadline: at,
         }
     }
 
     /// Returns the instant at which the future will complete.
     pub fn deadline(&self) -> Instant {
-        self.when
+        self.deadline
     }
 
     /// Returns `true` if `Sleep` has elapsed
@@ -109,7 +109,7 @@ impl Sleep {
     #[inline]
     pub fn reset(self: Pin<&mut Self>, deadline: Instant) {
         let inner = self.get_mut();
-        inner.when = deadline;
+        inner.deadline = deadline;
         if inner._reset(deadline).is_err() {
             inner.state = None
         }
@@ -195,6 +195,6 @@ impl Drop for Sleep {
 
 impl fmt::Debug for Sleep {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.debug_struct("Delay").field("deadline", &self.when).finish()
+        f.debug_struct("Delay").field("deadline", &self.deadline).finish()
     }
 }

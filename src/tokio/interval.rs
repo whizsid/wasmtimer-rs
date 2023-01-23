@@ -64,7 +64,6 @@ impl Stream for Interval {
     type Item = ();
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let test = Pin::new(&mut *self);
         if Pin::new(&mut *self).sleep().poll(cx).is_pending() {
             return Poll::Pending;
         }

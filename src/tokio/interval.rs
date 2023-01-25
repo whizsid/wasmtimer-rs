@@ -1,3 +1,4 @@
+use futures::future::poll_fn;
 use pin_utils::unsafe_pinned;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -6,7 +7,6 @@ use std::time::Duration;
 use futures::prelude::*;
 
 use crate::std::Instant;
-use crate::timer::TimerHandle;
 use crate::tokio::Sleep;
 
 /// A stream representing notifications at fixed interval
@@ -22,6 +22,7 @@ use crate::tokio::Sleep;
 pub struct Interval {
     sleep: Sleep,
     interval: Duration,
+    missed_tick_behavior: MissedTickBehavior,
 }
 
 impl Interval {
@@ -32,7 +33,7 @@ impl Interval {
     ///
     /// The returned object will be bound to the default timer for this thread.
     /// The default timer will be spun up in a helper thread on first use.
-    pub fn new(dur: Duration) -> Interval {
+    pub(crate) fn new(dur: Duration) -> Interval {
         Interval::new_at(Instant::now() + dur, dur)
     }
 
@@ -41,69 +42,102 @@ impl Interval {
     ///
     /// The returned object will be bound to the default timer for this thread.
     /// The default timer will be spun up in a helper thread on first use.
-    pub fn new_at(at: Instant, dur: Duration) -> Interval {
+    pub(crate) fn new_at(at: Instant, dur: Duration) -> Interval {
         Interval {
             sleep: Sleep::new_at(at),
             interval: dur,
+            missed_tick_behavior: MissedTickBehavior::default(),
         }
     }
 
-    /// Creates a new interval which will fire at the time specified by `at`,
-    /// and then will repeat every `dur` interval after
-    ///
-    /// The returned object will be bound to the timer specified by `handle`.
-    pub fn new_handle(at: Instant, dur: Duration, handle: TimerHandle) -> Interval {
-        Interval {
-            sleep: Sleep::new_handle(at, handle),
-            interval: dur,
-        }
+    pub async fn tick(&mut self) -> Instant {
+        let instant = poll_fn(|cx| self.poll_tick(cx));
+        instant.await
     }
-}
 
-impl Stream for Interval {
-    type Item = ();
-
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+    pub fn poll_tick(&mut self, cx: &mut Context<'_>) -> Poll<Instant> {
         if Pin::new(&mut *self).sleep().poll(cx).is_pending() {
             return Poll::Pending;
         }
-        let next = next_interval(self.sleep.deadline(), Instant::now(), self.interval);
-        self.sleep().reset(next);
-        Poll::Ready(Some(()))
+
+        let timeout = self.sleep.deadline();
+        let now = Instant::now();
+
+        let next = if now > timeout + Duration::from_millis(5) {
+            self.missed_tick_behavior
+                .next_timeout(timeout, now, self.interval)
+        } else {
+            timeout + self.interval
+        };
+
+        Pin::new(&mut self.sleep).reset(next);
+        Poll::Ready(timeout)
+    }
+
+    pub fn reset(&mut self) {
+        Pin::new(&mut self.sleep).reset(Instant::now() + self.interval);
+    }
+
+    /// Returns the [`MissedTickBehavior`] strategy currently being used.
+    pub fn missed_tick_behavior(&self) -> MissedTickBehavior {
+        self.missed_tick_behavior
+    }
+
+    /// Sets the [`MissedTickBehavior`] strategy that should be used.
+    pub fn set_missed_tick_behavior(&mut self, behavior: MissedTickBehavior) {
+        self.missed_tick_behavior = behavior;
+    }
+
+    /// Returns the period of the interval.
+    pub fn period(&self) -> Duration {
+        self.interval
     }
 }
 
-/// Converts Duration object to raw nanoseconds if possible
-///
-/// This is useful to divide intervals.
-///
-/// While technically for large duration it's impossible to represent any
-/// duration as nanoseconds, the largest duration we can represent is about
-/// 427_000 years. Large enough for any interval we would use or calculate in
-/// tokio.
-fn duration_to_nanos(dur: Duration) -> Option<u64> {
-    dur.as_secs()
-        .checked_mul(1_000_000_000)
-        .and_then(|v| v.checked_add(dur.subsec_nanos() as u64))
+#[derive(Debug, PartialEq, Clone, Copy, Eq)]
+pub enum MissedTickBehavior {
+    Burst,
+    Delay,
+    Skip,
 }
 
-fn next_interval(prev: Instant, now: Instant, interval: Duration) -> Instant {
-    let new = prev + interval;
-    if new > now {
-        return new;
-    } else {
-        let spent_ns =
-            duration_to_nanos(now.duration_since(prev)).expect("interval should be expired");
-        let interval_ns =
-            duration_to_nanos(interval).expect("interval is less that 427 thousand years");
-        let mult = spent_ns / interval_ns + 1;
-        assert!(
-            mult < (1 << 32),
-            "can't skip more than 4 billion intervals of {:?} \
-             (trying to skip {})",
-            interval,
-            mult
-        );
-        return prev + interval * (mult as u32);
+impl Default for MissedTickBehavior {
+    fn default() -> Self {
+        MissedTickBehavior::Burst
     }
+}
+
+impl MissedTickBehavior {
+    /// If a tick is missed, this method is called to determine when the next tick should happen.
+    fn next_timeout(&self, timeout: Instant, now: Instant, period: Duration) -> Instant {
+        match self {
+            Self::Burst => timeout + period,
+            Self::Delay => now + period,
+            Self::Skip => {
+                now + period
+                    - Duration::from_nanos(
+                        ((now - timeout).as_nanos() % period.as_nanos())
+                            .try_into()
+                            // This operation is practically guaranteed not to
+                            // fail, as in order for it to fail, `period` would
+                            // have to be longer than `now - timeout`, and both
+                            // would have to be longer than 584 years.
+                            //
+                            // If it did fail, there's not a good way to pass
+                            // the error along to the user, so we just panic.
+                            .expect(
+                                "too much time has elapsed since the interval was supposed to tick",
+                            ),
+                    )
+            }
+        }
+    }
+}
+
+pub fn interval(period: Duration) -> Interval {
+    Interval::new(period)
+}
+
+pub fn interval_at(start: Instant, period: Duration) -> Interval {
+    Interval::new_at(start, period)
 }

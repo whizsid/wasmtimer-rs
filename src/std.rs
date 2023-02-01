@@ -52,7 +52,17 @@ impl Ord for Instant {
 }
 
 impl Instant {
+    #[cfg(not(feature="tokio-test-util"))]
     pub fn now() -> Instant {
+        Self::now_js()
+    }
+
+    #[cfg(feature="tokio-test-util")]
+    pub fn now() -> Instant {
+        crate::timer::clock::now()
+    }
+
+    pub(crate) fn now_js() -> Instant {
         let val = web_sys::window()
             .expect("not in a browser")
             .performance()
@@ -81,6 +91,12 @@ impl Add<Duration> for Instant {
     }
 }
 
+impl AddAssign<Duration> for Instant {
+    fn add_assign(&mut self, rhs: Duration) {
+        self.inner += rhs.as_millis() as f64;
+    }
+}
+
 impl Sub<Duration> for Instant {
     type Output = Instant;
 
@@ -89,6 +105,12 @@ impl Sub<Duration> for Instant {
         Instant {
             inner: new_val as f64,
         }
+    }
+}
+
+impl SubAssign<Duration> for Instant {
+    fn sub_assign(&mut self, rhs: Duration) {
+        self.inner -= rhs.as_millis() as f64;
     }
 }
 

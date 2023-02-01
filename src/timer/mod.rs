@@ -244,9 +244,11 @@ use futures::task::AtomicWaker;
 use arc_list::{ArcList, Node};
 use heap::{Heap, Slot};
 
-pub(crate) mod arc_list;
+pub mod arc_list;
 mod global;
 mod heap;
+#[cfg(feature="tokio-test-util")]
+pub mod clock;
 
 /// A "timer heap" used to power separately owned instances of `Delay` and
 /// `Interval`.
@@ -340,14 +342,6 @@ impl Timer {
     /// instant.
     pub fn next_event(&self) -> Option<Instant> {
         self.timer_heap.peek().map(|t| t.at)
-    }
-
-    /// Proces any timers which are supposed to fire at or before the current
-    /// instant.
-    ///
-    /// This method is equivalent to `self.advance_to(Instant::now())`.
-    pub fn advance(&mut self) {
-        self.advance_to(Instant::now())
     }
 
     /// Proces any timers which are supposed to fire before `now` specified.
@@ -475,7 +469,7 @@ impl Ord for HeapTimer {
     }
 }
 
-static HANDLE_FALLBACK: AtomicPtr<Inner> = AtomicPtr::new(EMPTY_HANDLE);
+pub(crate) static HANDLE_FALLBACK: AtomicPtr<Inner> = AtomicPtr::new(EMPTY_HANDLE);
 const EMPTY_HANDLE: *mut Inner = std::ptr::null_mut();
 
 /// Error returned from `TimerHandle::set_fallback`.

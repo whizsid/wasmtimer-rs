@@ -60,8 +60,13 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
                 })
                 .unwrap_or(Duration::from_secs(5));
             drop(timer_lock);
+            
+            #[cfg(feature="tokio-test-util")]
+            if !super::clock::clock().paused() {
+                schedule_callback(timer, sleep_dur);
+            }
+            #[cfg(not(feature="tokio-test-util"))]
             schedule_callback(timer, sleep_dur);
-
         }).unchecked_ref(),
         i32::try_from(when.as_millis()).unwrap_or(0)
     ).unwrap();

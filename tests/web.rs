@@ -1,16 +1,23 @@
-use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::JsFuture;
-use wasm_bindgen_test::{wasm_bindgen_test_configure, wasm_bindgen_test};
+
+use std::time::Duration;
+
+use wasm_bindgen_test::{wasm_bindgen_test_configure, wasm_bindgen_test, console_log};
+use wasmtimer::tokio::{sleep, pause, advance};
 
 wasm_bindgen_test_configure!(run_in_browser);
 
 
 #[wasm_bindgen_test]
-async fn my_async_test() {
-    // Create a promise that is ready on the next tick of the micro task queue.
-    let promise = js_sys::Promise::resolve(&JsValue::from(42));
-
-    // Convert that promise into a future and make the test wait on it.
-    let x = JsFuture::from(promise).await.unwrap();
-    assert_eq!(x, 42);
+async fn sleep_test() {
+    console_log!("Pausing timer");
+    pause();
+    console_log!("Paused timer");
+    console_log!("Sleeping");
+    let sleeped = sleep(Duration::from_millis(1000));
+    console_log!("Sleeped");
+    assert!(!sleeped.is_elapsed());
+    console_log!("Advancing");
+    advance(Duration::from_millis(1005)).await;
+    console_log!("Advanced");
+    assert!(sleeped.is_elapsed());
 }

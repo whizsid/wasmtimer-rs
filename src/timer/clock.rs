@@ -3,8 +3,8 @@ use std::sync::atomic::{AtomicPtr, Ordering::SeqCst};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-static CLOCK: AtomicPtr<Mutex<Inner>> = AtomicPtr::new(EMPTY_CLOCK);
-const EMPTY_CLOCK: *mut Mutex<Inner> = std::ptr::null_mut();
+static CLOCK: AtomicPtr<Inner> = AtomicPtr::new(EMPTY_CLOCK);
+const EMPTY_CLOCK: *mut Inner = std::ptr::null_mut();
 
 pub(crate) fn clock() -> Clock {
     let mut clock = CLOCK.load(std::sync::atomic::Ordering::SeqCst);
@@ -28,21 +28,21 @@ pub(crate) fn clock() -> Clock {
 
 #[derive(Debug)]
 struct Inner {
-    base: Instant,
-    unfrozen: Option<Instant>,
+    base: Mutex<Instant>,
+    unfrozen: Mutex<Option<Instant>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Clock {
-    inner: Arc<Mutex<Inner>>,
+    inner: Arc<Inner>,
 }
 
 impl Clock {
-    fn into_raw(self) -> *mut Mutex<Inner> {
-        Arc::into_raw(self.inner.clone()) as *mut Mutex<Inner>
+    fn into_raw(self) -> *mut Inner {
+        Arc::into_raw(self.inner.clone()) as *mut Inner
     }
 
-    unsafe fn from_raw(raw: *mut Mutex<Inner>) -> Clock {
+    unsafe fn from_raw(raw: *mut Inner) -> Clock {
         let inner = Arc::from_raw(raw);
         Clock { inner }
     }
@@ -57,10 +57,10 @@ impl Clock {
         let now = Instant::now_js();
 
         let clock = Clock {
-            inner: Arc::new(Mutex::new(Inner {
-                base: now,
-                unfrozen: Some(now)
-            })),
+            inner: Arc::new(Inner {
+                base: Mutex::new(now),
+                unfrozen: Mutex::new(Some(now))
+            }),
         };
 
         if start_paused {
@@ -71,52 +71,51 @@ impl Clock {
     }
 
     pub(crate) fn resume(&self) {
-        let mut inner = self.inner.lock().unwrap();
-
-        if inner.unfrozen.is_some() {
+        if self.inner.unfrozen.lock().unwrap().is_some() {
             panic!("time is not frozen");
         }
 
-        inner.unfrozen = Some(Instant::now());
+
+        let mut unforzen = self.inner.unfrozen.lock().unwrap();
+        (*unforzen) = Some(Instant::now());
     }
 
     pub(crate) fn paused(&self) -> bool {
-        let inner = self.inner.lock().unwrap();
-
-        inner.unfrozen.is_none()
+        self.inner.unfrozen.lock().unwrap().is_none()
     }
 
     #[track_caller]
     pub(crate) fn pause(&self) {
-        let mut inner = self.inner.lock().unwrap();
 
-        let elapsed = inner
+        let unfrozen = self.inner
             .unfrozen
-            .as_ref()
-            .expect("time is already frozen")
-            .elapsed();
-        inner.base += elapsed;
-        inner.unfrozen = None;
+            .lock().unwrap()
+            .expect("time is already frozen");
+        let elapsed = Instant::now_js() - unfrozen.clone();
+        let mut base = self.inner.base.lock().unwrap();
+        (*base) += elapsed;
+        let mut unfrozen = self.inner.unfrozen.lock().unwrap();
+        (*unfrozen) = None;
     }
 
     #[track_caller]
     pub(crate) fn advance(&self, duration: Duration) {
-        let mut inner = self.inner.lock().unwrap();
-
-        if inner.unfrozen.is_some() {
+        if self.inner.unfrozen.lock().unwrap().is_some() {
             panic!("time is not frozen");
         }
 
-        inner.base += duration;
+        let mut base = self.inner.base.lock().unwrap();
+
+        (*base) += duration;
     }
 
     pub(crate) fn now(&self) -> Instant {
-        let inner = self.inner.lock().unwrap();
+        let mut ret = self.inner.base.lock().unwrap().clone();
 
-        let mut ret = inner.base;
+        let unfrozen = self.inner.unfrozen.lock().unwrap();
 
-        if let Some(unfrozen) = inner.unfrozen {
-            ret += unfrozen.elapsed();
+        if let Some(unfrozen) = *unfrozen {
+            ret += Instant::now_js() - unfrozen;
         }
 
         ret

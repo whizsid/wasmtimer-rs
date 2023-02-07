@@ -26,6 +26,10 @@ pub(crate) fn clock() -> Clock {
     }
 }
 
+pub(crate) fn now() -> Instant {
+    clock().now()
+}
+
 #[derive(Debug)]
 struct Inner {
     base: Mutex<Instant>,
@@ -46,20 +50,14 @@ impl Clock {
         let inner = Arc::from_raw(raw);
         Clock { inner }
     }
-}
 
-pub(crate) fn now() -> Instant {
-    clock().now()
-}
-
-impl Clock {
     pub(crate) fn new(start_paused: bool) -> Clock {
         let now = Instant::now_js();
 
         let clock = Clock {
             inner: Arc::new(Inner {
                 base: Mutex::new(now),
-                unfrozen: Mutex::new(Some(now))
+                unfrozen: Mutex::new(Some(now)),
             }),
         };
 
@@ -75,9 +73,8 @@ impl Clock {
             panic!("time is not frozen");
         }
 
-
         let mut unforzen = self.inner.unfrozen.lock().unwrap();
-        (*unforzen) = Some(Instant::now());
+        (*unforzen) = Some(Instant::now_js());
     }
 
     pub(crate) fn paused(&self) -> bool {
@@ -86,10 +83,11 @@ impl Clock {
 
     #[track_caller]
     pub(crate) fn pause(&self) {
-
-        let unfrozen = self.inner
+        let unfrozen = self
+            .inner
             .unfrozen
-            .lock().unwrap()
+            .lock()
+            .unwrap()
             .expect("time is already frozen");
         let elapsed = Instant::now_js() - unfrozen.clone();
         let mut base = self.inner.base.lock().unwrap();

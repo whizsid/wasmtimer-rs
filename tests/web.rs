@@ -1,6 +1,9 @@
-use std::{sync::Once, time::Duration};
+use std::{pin::Pin, sync::Once, time::Duration};
 
+use futures::{task::noop_waker_ref, Future};
+use std::task::{Context, Poll};
 use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
+use wasmtimer::std::Instant;
 use wasmtimer::tokio::{advance, pause};
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -14,14 +17,9 @@ pub fn initialize() {
 }
 
 pub mod sleep_tests {
-    use std::{
-        pin::Pin,
-        task::{Context, Poll},
-    };
 
     use super::*;
-    use futures::{task::noop_waker_ref, Future};
-    use wasmtimer::{tokio::sleep, std::Instant};
+    use wasmtimer::tokio::sleep;
 
     #[wasm_bindgen_test]
     async fn is_elapsed_test() {
@@ -73,5 +71,213 @@ pub mod sleep_tests {
         assert_eq!(Pin::new(&mut slept).poll(&mut cx), Poll::Pending);
         advance(Duration::from_millis(1505)).await;
         assert_eq!(Pin::new(&mut slept).poll(&mut cx), Poll::Ready(()));
+    }
+}
+
+pub mod interval_tests {
+
+    use wasmtimer::tokio::{interval, interval_at, MissedTickBehavior};
+
+    use super::*;
+
+    #[wasm_bindgen_test]
+    async fn interval_tick_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval(Duration::from_millis(500));
+        let mut fut = interval.tick();
+        unsafe {
+            assert_eq!(Pin::new_unchecked(&mut fut).poll(&mut cx), Poll::Pending);
+        }
+        advance(Duration::from_millis(501)).await;
+        unsafe {
+            assert!(matches!(
+                Pin::new_unchecked(&mut fut).poll(&mut cx),
+                Poll::Ready(_)
+            ));
+        }
+        drop(fut);
+        let mut fut2 = interval.tick();
+        unsafe {
+            assert_eq!(Pin::new_unchecked(&mut fut2).poll(&mut cx), Poll::Pending);
+        }
+        advance(Duration::from_millis(501)).await;
+        unsafe {
+            assert!(matches!(
+                Pin::new_unchecked(&mut fut2).poll(&mut cx),
+                Poll::Ready(_)
+            ));
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn interval_at_tick_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval_at(
+            Instant::now() + Duration::from_millis(1000),
+            Duration::from_millis(500),
+        );
+        let mut fut = interval.tick();
+        unsafe {
+            assert_eq!(Pin::new_unchecked(&mut fut).poll(&mut cx), Poll::Pending);
+        }
+        advance(Duration::from_millis(501)).await;
+        unsafe {
+            assert_eq!(Pin::new_unchecked(&mut fut).poll(&mut cx), Poll::Pending);
+        }
+        advance(Duration::from_millis(501)).await;
+        unsafe {
+            assert!(matches!(
+                Pin::new_unchecked(&mut fut).poll(&mut cx),
+                Poll::Ready(_)
+            ));
+        }
+        drop(fut);
+        let mut fut2 = interval.tick();
+        unsafe {
+            assert_eq!(Pin::new_unchecked(&mut fut2).poll(&mut cx), Poll::Pending);
+        }
+        advance(Duration::from_millis(501)).await;
+        unsafe {
+            assert!(matches!(
+                Pin::new_unchecked(&mut fut2).poll(&mut cx),
+                Poll::Ready(_)
+            ));
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn interval_poll_tick_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval(Duration::from_millis(500));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(501)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(501)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+    }
+
+    #[wasm_bindgen_test]
+    async fn interval_at_poll_tick_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval_at(
+            Instant::now() + Duration::from_millis(1000),
+            Duration::from_millis(500),
+        );
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(501)).await;
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(501)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(501)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+    }
+
+    #[wasm_bindgen_test]
+    async fn reset_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval(Duration::from_millis(500));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(301)).await;
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        interval.reset();
+        advance(Duration::from_millis(201)).await;
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(301)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+    }
+
+    #[wasm_bindgen_test]
+    async fn interval_at_reset_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval_at(
+            Instant::now() + Duration::from_millis(1000),
+            Duration::from_millis(500),
+        );
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(301)).await;
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        interval.reset();
+        advance(Duration::from_millis(201)).await;
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(301)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+    }
+
+    #[wasm_bindgen_test]
+    async fn missed_tick_behavior_burst_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval(Duration::from_millis(500));
+        interval.set_missed_tick_behavior(MissedTickBehavior::Burst);
+        advance(Duration::from_millis(1501)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+    }
+
+    #[wasm_bindgen_test]
+    async fn missed_tick_behavior_skip_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval(Duration::from_millis(500));
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        advance(Duration::from_millis(1601)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(401)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+    }
+
+    #[wasm_bindgen_test]
+    async fn missed_tick_behavior_delay_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut interval = interval(Duration::from_millis(500));
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+        advance(Duration::from_millis(1601)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(401)).await;
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(100)).await;
+        assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
+        assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
     }
 }

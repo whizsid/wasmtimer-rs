@@ -281,3 +281,85 @@ pub mod interval_tests {
         assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
     }
 }
+
+pub mod timeout_tests {
+
+    use super::*;
+    use wasmtimer::tokio::{sleep, timeout, timeout_at};
+
+    #[wasm_bindgen_test]
+    async fn timeout_success_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut fut = timeout(
+            Duration::from_millis(1500),
+            sleep(Duration::from_millis(1000)),
+        );
+        assert_eq!(Pin::new(&mut fut).poll(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(1001)).await;
+        assert!(matches!(
+            Pin::new(&mut fut).poll(&mut cx),
+            Poll::Ready(Ok(_))
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn timeout_fail_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut fut = timeout(
+            Duration::from_millis(1000),
+            sleep(Duration::from_millis(1500)),
+        );
+        assert_eq!(Pin::new(&mut fut).poll(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(1001)).await;
+        assert!(matches!(
+            Pin::new(&mut fut).poll(&mut cx),
+            Poll::Ready(Err(_))
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn timeout_at_success_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut fut = timeout_at(
+            Instant::now() + Duration::from_millis(1500),
+            sleep(Duration::from_millis(1000)),
+        );
+        assert_eq!(Pin::new(&mut fut).poll(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(1001)).await;
+        assert!(matches!(
+            Pin::new(&mut fut).poll(&mut cx),
+            Poll::Ready(Ok(_))
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn timeout_at_fail_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut fut = timeout_at(
+            Instant::now() + Duration::from_millis(1000),
+            sleep(Duration::from_millis(1500)),
+        );
+        assert_eq!(Pin::new(&mut fut).poll(&mut cx), Poll::Pending);
+        advance(Duration::from_millis(1001)).await;
+        assert!(matches!(
+            Pin::new(&mut fut).poll(&mut cx),
+            Poll::Ready(Err(_))
+        ));
+    }
+}

@@ -52,12 +52,12 @@ impl Ord for Instant {
 }
 
 impl Instant {
-    #[cfg(not(feature="tokio-test-util"))]
+    #[cfg(not(all(feature="tokio-test-util", feature="tokio")))]
     pub fn now() -> Instant {
         Self::now_js()
     }
 
-    #[cfg(feature="tokio-test-util")]
+    #[cfg(all(feature="tokio-test-util", feature="tokio"))]
     pub fn now() -> Instant {
         crate::timer::clock::now()
     }

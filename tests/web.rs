@@ -4,18 +4,22 @@ use futures::{task::noop_waker_ref, Future};
 use std::task::{Context, Poll};
 use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
 use wasmtimer::std::Instant;
+#[cfg(feature="tokio-test-util")]
 use wasmtimer::tokio::{advance, pause};
 
 wasm_bindgen_test_configure!(run_in_browser);
 
+#[cfg(feature="tokio-test-util")]
 static INIT: Once = Once::new();
 
+#[cfg(feature="tokio-test-util")]
 pub fn initialize() {
     INIT.call_once(|| {
         pause();
     });
 }
 
+#[cfg(feature="tokio-test-util")]
 pub mod sleep_tests {
 
     use super::*;
@@ -74,6 +78,7 @@ pub mod sleep_tests {
     }
 }
 
+#[cfg(feature="tokio-test-util")]
 pub mod interval_tests {
 
     use wasmtimer::tokio::{interval, interval_at, MissedTickBehavior};
@@ -282,6 +287,7 @@ pub mod interval_tests {
     }
 }
 
+#[cfg(feature="tokio-test-util")]
 pub mod timeout_tests {
 
     use super::*;
@@ -360,6 +366,198 @@ pub mod timeout_tests {
         assert!(matches!(
             Pin::new(&mut fut).poll(&mut cx),
             Poll::Ready(Err(_))
+        ));
+    }
+}
+
+#[cfg(feature="tokio-test-util")]
+pub mod delay_queue_tests {
+    use wasmtimer::tokio_util::DelayQueue;
+
+    use super::*;
+
+    #[wasm_bindgen_test]
+    async fn insert_at_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut delay_queue = DelayQueue::<()>::new();
+        let key1 = delay_queue.insert_at((), Instant::now() + Duration::from_millis(1000));
+        let key2 = delay_queue.insert_at((), Instant::now() + Duration::from_millis(1000));
+        let key3 = delay_queue.insert_at((), Instant::now() + Duration::from_millis(1500));
+        advance(Duration::from_millis(1000)).await;
+
+        let expired_1 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_1, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_1 {
+            assert_eq!(key1, expired.key());
+        }
+
+        let expired_2 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_2, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_2 {
+            assert_eq!(key2, expired.key());
+        }
+
+        assert!(matches!(delay_queue.poll_expired(&mut cx), Poll::Pending));
+
+        advance(Duration::from_millis(500)).await;
+
+        let expired_3 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_3, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_3 {
+            assert_eq!(key3, expired.key());
+        }
+
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
+        ));
+
+        let key4 = delay_queue.insert_at((), Instant::now() + Duration::from_millis(500));
+        advance(Duration::from_millis(500)).await;
+
+        let expired_4 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_4, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_4 {
+            assert_eq!(key4, expired.key());
+        }
+
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn insert_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut delay_queue = DelayQueue::<()>::new();
+        let key1 = delay_queue.insert((), Duration::from_millis(1000));
+        let key2 = delay_queue.insert((), Duration::from_millis(1000));
+        let key3 = delay_queue.insert((), Duration::from_millis(1500));
+        advance(Duration::from_millis(1000)).await;
+
+        let expired_1 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_1, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_1 {
+            assert_eq!(key1, expired.key());
+        }
+        let expired_2 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_2, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_2 {
+            assert_eq!(key2, expired.key());
+        }
+
+        assert!(matches!(delay_queue.poll_expired(&mut cx), Poll::Pending));
+
+        advance(Duration::from_millis(500)).await;
+
+        let expired_3 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_3, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_3 {
+            assert_eq!(key3, expired.key());
+        }
+
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
+        ));
+
+        let key4 = delay_queue.insert((), Duration::from_millis(500));
+        advance(Duration::from_millis(500)).await;
+
+        let expired_4 = delay_queue.poll_expired(&mut cx);
+        assert!(matches!(expired_4, Poll::Ready(Some(_))));
+        if let Poll::Ready(Some(expired)) = expired_4 {
+            assert_eq!(key4, expired.key());
+        }
+
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn immidiately_remove_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut delay_queue = DelayQueue::<()>::new();
+
+        let key1 = delay_queue.insert((), Duration::from_millis(1000));
+        delay_queue.remove(&key1);
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
+        ));
+
+        advance(Duration::from_millis(1000)).await;
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn remove_after_deadline_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut delay_queue = DelayQueue::<()>::new();
+
+        let key1 = delay_queue.insert((), Duration::from_millis(1000));
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Pending
+        ));
+        advance(Duration::from_millis(1000)).await;
+        delay_queue.remove(&key1);
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    async fn reset_test() {
+        initialize();
+
+        let waker = noop_waker_ref();
+        let mut cx = Context::from_waker(waker);
+
+        let mut delay_queue = DelayQueue::<()>::new();
+
+        let key1 = delay_queue.insert((), Duration::from_millis(1000));
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Pending
+        ));
+        delay_queue.reset(&key1, Duration::from_millis(1500));
+        advance(Duration::from_millis(1000)).await;
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Pending
+        ));
+        advance(Duration::from_millis(500)).await;
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(Some(_))
+        ));
+        assert!(matches!(
+            delay_queue.poll_expired(&mut cx),
+            Poll::Ready(None)
         ));
     }
 }

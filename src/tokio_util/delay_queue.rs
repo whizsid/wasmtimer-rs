@@ -6,10 +6,10 @@
 
 use super::wheel::{self, Wheel};
 
-use futures::ready;
-use crate::tokio::{sleep_until, Sleep};
-use std::time::Duration;
 use crate::std::Instant;
+use crate::tokio::{sleep_until, Sleep};
+use futures::ready;
+use std::time::Duration;
 
 use core::ops::{Index, IndexMut};
 use slab::Slab;
@@ -469,7 +469,18 @@ impl<T> DelayQueue<T> {
 
                 let now = super::ms(delay.deadline() - self.start, super::Round::Down);
 
-                self.wheel_now = now;
+                #[cfg(feature = "tokio-test-util")]
+                {
+                    // +1 here is a tricky way to avoid infinite loop
+                    // in tokio the auto advance feature will always advances time to next time
+                    // event and prevent the infinite loop. But this crate doesn't support auto
+                    // advancing and it will lead this loop to run till infinity.
+                    self.wheel_now = now + 1;
+                }
+                #[cfg(not(feature = "tokio-test-util"))]
+                {
+                    self.wheel_now = now;
+                }
             }
 
             // We poll the wheel to get the next value out before finding the next deadline.

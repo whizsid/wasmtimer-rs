@@ -366,7 +366,7 @@ pub mod web_tests {
         }
     }
 
-    #[cfg(feature="tokio-util")]
+    #[cfg(feature = "tokio-util")]
     pub mod delay_queue_tests {
         use wasmtimer::tokio_util::DelayQueue;
 

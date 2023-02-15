@@ -1,14 +1,14 @@
-use futures::Future;
 use futures::task::AtomicWaker;
+use futures::Future;
 
 use crate::std::Instant;
 use crate::timer::arc_list::Node;
 use crate::timer::{ScheduledTimer, TimerHandle};
-use std::task::{Poll, Context};
 use std::fmt;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll};
 use std::time::Duration;
 
 pub struct Sleep {
@@ -17,7 +17,6 @@ pub struct Sleep {
 }
 
 impl Sleep {
-
     /// Creates a new future which will fire at `dur` time into the future.
     ///
     /// The returned object will be bound to the default timer for this thread.
@@ -86,7 +85,7 @@ impl Sleep {
     pub fn is_elapsed(&self) -> bool {
         match self.state {
             Some(ref state) => state.state.load(Ordering::SeqCst) & 1 != 0,
-            None => false
+            None => false,
         }
     }
 
@@ -128,7 +127,10 @@ impl Sleep {
                     return Err(());
                 }
                 let new = bits.wrapping_add(0b100) & !0b11;
-                match state.state.compare_exchange(bits, new, Ordering::SeqCst, Ordering::SeqCst) {
+                match state
+                    .state
+                    .compare_exchange(bits, new, Ordering::SeqCst, Ordering::SeqCst)
+                {
                     Ok(_) => break,
                     Err(s) => bits = s,
                 }
@@ -158,7 +160,7 @@ impl Future for Sleep {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let state = match self.state {
             Some(ref state) => state,
-            None => panic!("timer has gone away")
+            None => panic!("timer has gone away"),
         };
 
         if state.state.load(Ordering::SeqCst) & 1 != 0 {
@@ -195,6 +197,8 @@ impl Drop for Sleep {
 
 impl fmt::Debug for Sleep {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.debug_struct("Delay").field("deadline", &self.deadline).finish()
+        f.debug_struct("Delay")
+            .field("deadline", &self.deadline)
+            .finish()
     }
 }

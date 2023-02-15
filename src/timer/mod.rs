@@ -245,10 +245,10 @@ use arc_list::{ArcList, Node};
 use heap::{Heap, Slot};
 
 pub mod arc_list;
+#[cfg(feature = "tokio-test-util")]
+pub mod clock;
 mod global;
 mod heap;
-#[cfg(feature="tokio-test-util")]
-pub mod clock;
 
 /// A "timer heap" used to power separately owned instances of `Delay` and
 /// `Interval`.

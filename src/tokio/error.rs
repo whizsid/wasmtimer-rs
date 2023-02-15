@@ -7,7 +7,6 @@ use std::fmt;
 #[derive(Debug, PartialEq, Eq)]
 pub struct Elapsed(());
 
-
 // ===== impl Elapsed =====
 
 impl Elapsed {

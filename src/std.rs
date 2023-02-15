@@ -52,12 +52,12 @@ impl Ord for Instant {
 }
 
 impl Instant {
-    #[cfg(not(all(feature="tokio-test-util", feature="tokio")))]
+    #[cfg(not(all(feature = "tokio-test-util", feature = "tokio")))]
     pub fn now() -> Instant {
         Self::now_js()
     }
 
-    #[cfg(all(feature="tokio-test-util", feature="tokio"))]
+    #[cfg(all(feature = "tokio-test-util", feature = "tokio"))]
     pub fn now() -> Instant {
         crate::timer::clock::now()
     }
@@ -85,9 +85,7 @@ impl Add<Duration> for Instant {
 
     fn add(self, other: Duration) -> Instant {
         let new_val = self.inner + other.as_millis() as f64;
-        Instant {
-            inner: new_val,
-        }
+        Instant { inner: new_val }
     }
 }
 
@@ -102,9 +100,7 @@ impl Sub<Duration> for Instant {
 
     fn sub(self, other: Duration) -> Instant {
         let new_val = self.inner - other.as_millis() as f64;
-        Instant {
-            inner: new_val,
-        }
+        Instant { inner: new_val }
     }
 }
 
@@ -196,9 +192,7 @@ impl Add<Duration> for SystemTime {
 
     fn add(self, other: Duration) -> SystemTime {
         let new_val = self.inner + other.as_millis() as f64;
-        SystemTime {
-            inner: new_val,
-        }
+        SystemTime { inner: new_val }
     }
 }
 
@@ -207,9 +201,7 @@ impl Sub<Duration> for SystemTime {
 
     fn sub(self, other: Duration) -> SystemTime {
         let new_val = self.inner - other.as_millis() as f64;
-        SystemTime {
-            inner: new_val,
-        }
+        SystemTime { inner: new_val }
     }
 }
 

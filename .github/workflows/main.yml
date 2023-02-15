@@ -19,7 +19,7 @@ jobs:
       - run: cargo check --no-default-features --features tokio-util
       - run: cargo check --no-default-features --features tokio-test-util
       - run: cargo check --no-default-features --features tokio
-      - run: cargo check --no-default-features-features
+      - run: cargo check --no-default-features
 
   unittest:
     name: Unit Test
@@ -34,7 +34,7 @@ jobs:
       - run: cargo test --no-default-features
 
   inttest:
-    name: Unit Test
+    name: Integration Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

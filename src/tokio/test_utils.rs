@@ -1,5 +1,5 @@
-use std::time::Duration;
 use crate::timer::TimerHandle;
+use std::time::Duration;
 
 use crate::timer::clock::clock;
 

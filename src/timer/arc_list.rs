@@ -58,7 +58,10 @@ impl<T> ArcList<T> {
             if list == Node::sealed() {
                 break;
             }
-            match self.list.compare_exchange(list, Node::EMPTY, SeqCst, SeqCst) {
+            match self
+                .list
+                .compare_exchange(list, Node::EMPTY, SeqCst, SeqCst)
+            {
                 Ok(_) => break,
                 Err(l) => list = l,
             }

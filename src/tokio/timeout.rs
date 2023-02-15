@@ -5,11 +5,11 @@ use pin_utils::unsafe_pinned;
 
 use crate::std::Instant;
 
-use super::{Sleep, error::Elapsed};
+use super::{error::Elapsed, Sleep};
 
 pub struct Timeout<T> {
     delay: Sleep,
-    future: T
+    future: T,
 }
 
 impl<F> Timeout<F>
@@ -19,16 +19,14 @@ where
     unsafe_pinned!(future: F);
     unsafe_pinned!(delay: Sleep);
 
-    pub(crate) fn new(dur: Duration, fut: F) -> Timeout<F>
-    {
+    pub(crate) fn new(dur: Duration, fut: F) -> Timeout<F> {
         Timeout {
             delay: Sleep::new(dur),
             future: fut,
         }
     }
 
-    pub(crate) fn new_at(at: Instant, fut: F) -> Timeout<F>
-    {
+    pub(crate) fn new_at(at: Instant, fut: F) -> Timeout<F> {
         Timeout {
             delay: Sleep::new_at(at),
             future: fut,
@@ -48,13 +46,19 @@ where
     }
 }
 
-impl<T> Future for Timeout<T> where T: Future {
+impl<T> Future for Timeout<T>
+where
+    T: Future,
+{
     type Output = Result<T::Output, Elapsed>;
 
-    fn poll(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Self::Output> {
         match self.as_mut().future().poll(cx) {
-            Poll::Pending => {},
-            Poll::Ready(other) => return Poll::Ready(Ok(other))
+            Poll::Pending => {}
+            Poll::Ready(other) => return Poll::Ready(Ok(other)),
         }
 
         if self.delay().poll(cx).is_ready() {

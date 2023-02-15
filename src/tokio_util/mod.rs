@@ -14,7 +14,6 @@ enum Round {
     Down,
 }
 
-
 #[inline]
 fn ms(duration: Duration, round: Round) -> u64 {
     const NANOS_PER_MILLI: u32 = 1_000_000;

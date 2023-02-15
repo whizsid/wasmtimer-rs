@@ -25,7 +25,7 @@ added some additional features and released to use for
 
 ## `tokio::time` vs `wasmtimer`
 
-- `wasm-timer` is only running on WASM browser targets and not using any
+- `wasmtimer` is only running on WASM browser targets and not using any
 `tokio` feature as a dependency.
 - This timer crate not supporting
 [Auto-advance](https://docs.rs/tokio/latest/tokio/time/fn.pause.html#auto-advance)
@@ -36,5 +36,5 @@ tokio's original implementation.
 
 ## Todo
 
-- Serde Support
-- Web Workers Support
+- Serde Support (Support de/serializing by introducing a new feature
+`serde`)

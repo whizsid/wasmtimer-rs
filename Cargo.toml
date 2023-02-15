@@ -6,6 +6,7 @@ version = "0.0.1"
 authors = ["WhizSid <whizsid@aol.com>", "Pierre Krieger <pierre.krieger1708@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/whizsid/wasmtimer-rs"
+keywords = ["timer", "wasm", "tokio", "browser", "delay-queue", "aync", "await"]
 
 [dependencies]
 futures = {version= "0.3", optional = true}

@@ -72,7 +72,7 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
         let _ = web_sys::window()
             .expect("Unable to access Window")
             .set_timeout_with_callback_and_timeout_and_arguments_0(
-                &Closure::once_into_js(cb).unchecked_ref(),
+                Closure::once_into_js(cb).unchecked_ref(),
                 i32::try_from(when.as_millis()).unwrap_or(0),
             )
             .unwrap();

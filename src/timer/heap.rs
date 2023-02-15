@@ -71,7 +71,7 @@ impl<T: Ord> Heap<T> {
 
     pub fn pop(&mut self) -> Option<T> {
         self.assert_consistent();
-        if self.items.len() == 0 {
+        if self.items.is_empty() {
             return None;
         }
         let slot = Slot {
@@ -101,7 +101,7 @@ impl<T: Ord> Heap<T> {
             }
         }
         self.assert_consistent();
-        return item;
+        item
     }
 
     fn percolate_up(&mut self, mut idx: usize) -> usize {
@@ -116,7 +116,7 @@ impl<T: Ord> Heap<T> {
             set_index(&mut self.index, b[0].1, idx);
             idx = parent;
         }
-        return idx;
+        idx
     }
 
     fn percolate_down(&mut self, mut idx: usize) -> usize {
@@ -157,7 +157,7 @@ impl<T: Ord> Heap<T> {
             set_index(&mut self.index, b[0].1, a.len());
             idx = a.len();
         }
-        return idx;
+        idx
     }
 
     fn assert_consistent(&self) {
@@ -184,28 +184,25 @@ impl<T: Ord> Heap<T> {
                 SlabSlot::Empty { .. } => panic!(),
             };
             if index != i {
-                panic!(
-                    "self.index[j] != i : i={} j={} self.index[j]={}",
-                    i, j, index
-                );
+                panic!("self.index[j] != i : i={i} j={j} self.index[j]={index}");
             }
         }
 
-        for (i, &(ref item, _)) in self.items.iter().enumerate() {
+        for (i, (item, _)) in self.items.iter().enumerate() {
             if i > 0 {
-                assert!(*item >= self.items[(i - 1) / 2].0, "bad at index: {}", i);
+                assert!(*item >= self.items[(i - 1) / 2].0, "bad at index: {i}");
             }
             if let Some(left) = self.items.get(2 * i + 1) {
-                assert!(*item <= left.0, "bad left at index: {}", i);
+                assert!(*item <= left.0, "bad left at index: {i}");
             }
             if let Some(right) = self.items.get(2 * i + 2) {
-                assert!(*item <= right.0, "bad right at index: {}", i);
+                assert!(*item <= right.0, "bad right at index: {i}");
             }
         }
     }
 }
 
-fn set_index<T>(slab: &mut Vec<SlabSlot<T>>, slab_slot: usize, val: T) {
+fn set_index<T>(slab: &mut [SlabSlot<T>], slab_slot: usize, val: T) {
     match slab[slab_slot] {
         SlabSlot::Full { ref mut value } => *value = val,
         SlabSlot::Empty { .. } => panic!(),

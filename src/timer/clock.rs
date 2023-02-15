@@ -21,8 +21,9 @@ pub(crate) fn clock() -> Clock {
     unsafe {
         let clock = Clock::from_raw(clock);
         let ret = clock.clone();
+        #[allow(clippy::drop_copy)]
         drop(clock.into_raw());
-        return ret;
+        ret
     }
 }
 
@@ -43,7 +44,7 @@ pub struct Clock {
 
 impl Clock {
     fn into_raw(self) -> *mut Inner {
-        Arc::into_raw(self.inner.clone()) as *mut Inner
+        Arc::into_raw(self.inner) as *mut Inner
     }
 
     unsafe fn from_raw(raw: *mut Inner) -> Clock {
@@ -89,7 +90,7 @@ impl Clock {
             .lock()
             .unwrap()
             .expect("time is already frozen");
-        let elapsed = Instant::now_js() - unfrozen.clone();
+        let elapsed = Instant::now_js() - unfrozen;
         let mut base = self.inner.base.lock().unwrap();
         (*base) += elapsed;
         let mut unfrozen = self.inner.unfrozen.lock().unwrap();
@@ -108,7 +109,7 @@ impl Clock {
     }
 
     pub(crate) fn now(&self) -> Instant {
-        let mut ret = self.inner.base.lock().unwrap().clone();
+        let mut ret = *self.inner.base.lock().unwrap();
 
         let unfrozen = self.inner.unfrozen.lock().unwrap();
 

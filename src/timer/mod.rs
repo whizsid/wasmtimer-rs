@@ -554,8 +554,9 @@ impl Default for TimerHandle {
         unsafe {
             let handle = TimerHandle::from_raw(fallback);
             let ret = handle.clone();
+            #[allow(clippy::drop_copy)]
             drop(handle.into_raw());
-            return ret;
+            ret
         }
     }
 }

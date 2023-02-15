@@ -42,8 +42,8 @@ jobs:
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - run: wasm-pack test --headless --chrome
-      - run: wasm-pack test --headless --firefox
+      - run: wasm-pack test --headless --chrome --features tokio-test-util
+      - run: wasm-pack test --headless --firefox --features tokio-test-util
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest

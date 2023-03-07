@@ -9,13 +9,13 @@ repository = "https://github.com/whizsid/wasmtimer-rs"
 keywords = ["timer", "wasm", "tokio", "browser", "delay-queue"]
 
 [dependencies]
-futures = {version= "^0.3", optional = true}
-parking_lot = {version= "^0.12", optional = true }
-pin-utils = {version = "^0.1", optional = true }
-js-sys = "^0.3"
-wasm-bindgen = {version = "^0.2", optional = true }
-web-sys = { version = "^0.3", features = ["Performance", "Window"] }
-slab = { version = "^0.4", optional = true }
+futures = {version= "0.3", optional = true}
+parking_lot = {version= "0.12", optional = true }
+pin-utils = {version = "0.1.0", optional = true }
+js-sys = "0.3"
+wasm-bindgen = {version = "0.2", optional = true }
+web-sys = { version = "0.3", features = ["Performance", "Window"] }
+slab = { version = "0.4.4", optional = true }
 serde_crate = { package = "serde" , version = "^1.0", optional = true, default-features = false }
 
 [features]

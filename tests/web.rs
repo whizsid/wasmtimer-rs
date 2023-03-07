@@ -1,14 +1,26 @@
+use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
+
+wasm_bindgen_test_configure!(run_in_browser);
+
+#[cfg(feature = "serde")]
+#[wasm_bindgen_test]
+pub fn test_serde() {
+    use wasmtimer::std::SystemTime;
+    let now = SystemTime::now();
+    let serialized = serde_json::to_string(&now).unwrap();
+    let deserialized: SystemTime = serde_json::from_str(&serialized).unwrap();
+    assert_eq!(now, deserialized);
+}
+
 #[cfg(feature = "tokio-test-util")]
 pub mod web_tests {
+    use super::*;
     use std::{pin::Pin, sync::Once, time::Duration};
 
     use futures::{task::noop_waker_ref, Future};
     use std::task::{Context, Poll};
-    use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
     use wasmtimer::std::Instant;
     use wasmtimer::tokio::{advance, pause};
-
-    wasm_bindgen_test_configure!(run_in_browser);
 
     static INIT: Once = Once::new();
 

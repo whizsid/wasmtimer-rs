@@ -1,0 +1,3 @@
+- 0.0.1 - Initial version with tokio, tokio_util, std APIs
+- 0.1.0 - Added serde support with an additional feature `serde`.
+        - Changed the version requirements of dependencies to match future versions

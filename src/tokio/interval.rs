@@ -94,17 +94,12 @@ impl Interval {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Default)]
 pub enum MissedTickBehavior {
+    #[default]
     Burst,
     Delay,
     Skip,
-}
-
-impl Default for MissedTickBehavior {
-    fn default() -> Self {
-        MissedTickBehavior::Burst
-    }
 }
 
 impl MissedTickBehavior {

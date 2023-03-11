@@ -1,5 +1,6 @@
 use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
 
+#[cfg(browser)]
 wasm_bindgen_test_configure!(run_in_browser);
 
 #[cfg(feature = "serde")]
@@ -13,7 +14,7 @@ pub fn test_serde() {
 }
 
 #[cfg(feature = "tokio-test-util")]
-pub mod web_tests {
+pub mod tokio_tests {
     use super::*;
     use std::{pin::Pin, sync::Once, time::Duration};
 

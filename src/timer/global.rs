@@ -8,6 +8,7 @@ use std::task::Context;
 use std::time::Duration;
 use wasm_bindgen::{closure::Closure, JsCast};
 
+use crate::js::set_timeout;
 use crate::std::Instant;
 use crate::timer::{Timer, TimerHandle};
 
@@ -69,23 +70,19 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
     if super::clock::clock().paused() {
         cb();
     } else {
-        let _ = web_sys::window()
-            .expect("Unable to access Window")
-            .set_timeout_with_callback_and_timeout_and_arguments_0(
-                Closure::once_into_js(cb).unchecked_ref(),
-                i32::try_from(when.as_millis()).unwrap_or(0),
-            )
-            .unwrap();
-    }
-
-    #[cfg(not(feature = "tokio-test-util"))]
-    let _ = web_sys::window()
-        .expect("Unable to access Window")
-        .set_timeout_with_callback_and_timeout_and_arguments_0(
-            &Closure::once_into_js(cb).unchecked_ref(),
+        let _ = set_timeout(
+            Closure::once_into_js(cb).unchecked_ref(),
             i32::try_from(when.as_millis()).unwrap_or(0),
         )
         .unwrap();
+    }
+
+    #[cfg(not(feature = "tokio-test-util"))]
+    let _ = set_timeout(
+        Closure::once_into_js(cb).unchecked_ref(),
+        i32::try_from(when.as_millis()).unwrap_or(0),
+    )
+    .unwrap();
 }
 
 struct Waker {

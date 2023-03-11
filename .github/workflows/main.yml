@@ -19,6 +19,7 @@ jobs:
       - run: cargo check --no-default-features --features tokio-util
       - run: cargo check --no-default-features --features tokio-test-util
       - run: cargo check --no-default-features --features tokio
+      - run: cargo check --no-default-features --features serde
       - run: cargo check --no-default-features
 
   unittest:
@@ -31,19 +32,31 @@ jobs:
       - run: cargo test --no-default-features --features tokio-util
       - run: cargo test --no-default-features --features tokio-test-util
       - run: cargo test --no-default-features --features tokio
+      - run: cargo test --no-default-features --features serde
       - run: cargo test --no-default-features
 
-  inttest:
-    name: Integration Test
+  inttestbrowser:
+    name: Integration Test Browser
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "--cfg browser"
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - run: wasm-pack test --headless --chrome --features tokio-test-util
-      - run: wasm-pack test --headless --firefox --features tokio-test-util
+      - run: wasm-pack test --headless --firefox --features tokio-test-util,serde
+      - run: wasm-pack test --headless --chrome --features tokio-test-util,serde
+  inttestnode:
+    name: Integration Test Node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: wasm-pack test --node --features tokio-test-util,serde
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest

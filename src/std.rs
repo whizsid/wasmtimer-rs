@@ -23,6 +23,8 @@ use std::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
 
+use crate::js::performance_now;
+
 #[derive(Debug, Copy, Clone)]
 pub struct Instant {
     /// Unit is milliseconds.
@@ -63,11 +65,7 @@ impl Instant {
     }
 
     pub(crate) fn now_js() -> Instant {
-        let val = web_sys::window()
-            .expect("not in a browser")
-            .performance()
-            .expect("performance object not available")
-            .now();
+        let val = performance_now();
         Instant { inner: val }
     }
 

@@ -34,7 +34,8 @@ tasks(`Promise`) in browser scope. If we implemented such without caring
 about background tasks, then this implementation will not match with the
 tokio's original implementation.
 
-## Todo
+## Features
 
-- Serde Support (Support de/serializing by introducing a new feature
-`serde`)
+- Serde Support (`serde` feature flag)
+- Worker and NodeJS Support
+- Test Utilities

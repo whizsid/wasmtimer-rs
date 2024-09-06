@@ -6,9 +6,9 @@ replicate above APIs. Users only have to change their `use` scripts by
 using a `cfg` macro.
 
 ```rust
-#[cfg(not(target_arch="wasm"))]
+#[cfg(not(target_family="wasm"))]
 use tokio::time::*;
-#[cfg(target_arch="wasm")]
+#[cfg(target_family="wasm")]
 use wasmtimer::tokio::*;
 ```
 

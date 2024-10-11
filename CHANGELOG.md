@@ -4,3 +4,6 @@
 - 0.2.0 - Used `performance` and `set_timeout` from `js_sys::global`.
         - Fixed #3 NodeJS Support
         - Fixed #5 Web Worker Support
+- 0.2.1 - Fixing the clippy warnings
+        - fix: impl traits on SystemTime
+        - Fix example inclusion

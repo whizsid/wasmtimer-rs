@@ -67,27 +67,27 @@ impl Instant {
     }
 
     pub fn duration_since(&self, earlier: Instant) -> Duration {
-        *self - earlier
+        self.checked_duration_since(earlier).unwrap_or_default()
     }
 
     pub fn elapsed(&self) -> Duration {
         Instant::now() - *self
     }
 
-    fn checked_add_duration(&self, other: &Duration) -> Option<Instant> {
-        Some(Instant(self.0.checked_add(*other)?))
+    pub fn checked_duration_since(&self, earlier: Instant) -> Option<Duration> {
+        self.0.checked_sub(earlier.0)
     }
 
-    fn checked_sub_duration(&self, other: &Duration) -> Option<Instant> {
-        Some(Instant(self.0.checked_sub(*other)?))
+    pub fn saturating_duration_since(&self, earlier: Instant) -> Duration {
+        self.checked_duration_since(earlier).unwrap_or_default()
     }
 
     pub fn checked_add(&self, duration: Duration) -> Option<Instant> {
-        self.checked_add_duration(&duration)
+        self.0.checked_add(duration).map(Instant)
     }
 
     pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
-        self.checked_sub_duration(&duration)
+        self.0.checked_sub(duration).map(Instant)
     }
 }
 

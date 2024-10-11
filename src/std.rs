@@ -26,16 +26,13 @@ use std::time::Duration;
 use crate::js::performance_now;
 
 #[derive(Debug, Copy, Clone)]
-pub struct Instant {
-    /// Unit is milliseconds.
-    inner: f64,
-}
+pub struct Instant(Duration);
 
 impl PartialEq for Instant {
     fn eq(&self, other: &Instant) -> bool {
         // Note that this will most likely only compare equal if we clone an `Instant`,
         // but that's ok.
-        self.inner == other.inner
+        self.0 == other.0
     }
 }
 
@@ -49,7 +46,7 @@ impl PartialOrd for Instant {
 
 impl Ord for Instant {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.inner.partial_cmp(&other.inner).unwrap()
+        self.0.partial_cmp(&other.0).unwrap()
     }
 }
 
@@ -65,8 +62,8 @@ impl Instant {
     }
 
     pub(crate) fn now_js() -> Instant {
-        let val = performance_now();
-        Instant { inner: val }
+        let val = (performance_now() * 1000.0) as u64;
+        Instant(Duration::from_micros(val))
     }
 
     pub fn duration_since(&self, earlier: Instant) -> Duration {
@@ -76,20 +73,40 @@ impl Instant {
     pub fn elapsed(&self) -> Duration {
         Instant::now() - *self
     }
+
+    fn checked_add_duration(&self, other: &Duration) -> Option<Instant> {
+        Some(Instant(self.0.checked_add(*other)?))
+    }
+
+    fn checked_sub_duration(&self, other: &Duration) -> Option<Instant> {
+        Some(Instant(self.0.checked_sub(*other)?))
+    }
+
+    pub fn checked_add(&self, duration: Duration) -> Option<Instant> {
+        self.checked_add_duration(&duration)
+    }
+
+    pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
+        self.checked_sub_duration(&duration)
+    }
 }
 
 impl Add<Duration> for Instant {
     type Output = Instant;
 
+    /// # Panics
+    ///
+    /// This function may panic if the resulting point in time cannot be represented by the
+    /// underlying data structure. See [`Instant::checked_add`] for a version without panic.
     fn add(self, other: Duration) -> Instant {
-        let new_val = self.inner + other.as_millis() as f64;
-        Instant { inner: new_val }
+        self.checked_add(other)
+            .expect("overflow when adding duration to instant")
     }
 }
 
 impl AddAssign<Duration> for Instant {
-    fn add_assign(&mut self, rhs: Duration) {
-        self.inner += rhs.as_millis() as f64;
+    fn add_assign(&mut self, other: Duration) {
+        *self = *self + other;
     }
 }
 
@@ -97,24 +114,32 @@ impl Sub<Duration> for Instant {
     type Output = Instant;
 
     fn sub(self, other: Duration) -> Instant {
-        let new_val = self.inner - other.as_millis() as f64;
-        Instant { inner: new_val }
+        self.checked_sub(other)
+            .expect("overflow when subtracting duration from instant")
     }
 }
 
 impl SubAssign<Duration> for Instant {
-    fn sub_assign(&mut self, rhs: Duration) {
-        self.inner -= rhs.as_millis() as f64;
+    fn sub_assign(&mut self, other: Duration) {
+        *self = *self - other;
     }
 }
 
 impl Sub<Instant> for Instant {
     type Output = Duration;
 
+    /// Returns the amount of time elapsed from another instant to this one,
+    /// or zero duration if that instant is later than this one.
+    ///
+    /// # Panics
+    ///
+    /// Previous Rust versions panicked when `other` was later than `self`. Currently this
+    /// method saturates. Future versions may reintroduce the panic in some circumstances.
+    /// See [Monotonicity].
+    ///
+    /// [Monotonicity]: Instant#monotonicity
     fn sub(self, other: Instant) -> Duration {
-        let ms = self.inner - other.inner;
-        assert!(ms >= 0.0);
-        Duration::from_millis(ms as u64)
+        self.duration_since(other)
     }
 }
 

@@ -43,7 +43,7 @@ impl Eq for Instant {}
 
 impl PartialOrd for Instant {
     fn partial_cmp(&self, other: &Instant) -> Option<Ordering> {
-        self.inner.partial_cmp(&other.inner)
+        Some(self.cmp(other))
     }
 }
 
@@ -126,11 +126,18 @@ pub struct SystemTime {
     inner: f64,
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct SystemTimeError(Duration);
 
 impl SystemTimeError {
     pub fn duration(&self) -> Duration {
         self.0
+    }
+}
+
+impl std::fmt::Display for SystemTimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "second time provided was later than self")
     }
 }
 
@@ -146,7 +153,7 @@ impl Eq for SystemTime {}
 
 impl PartialOrd for SystemTime {
     fn partial_cmp(&self, other: &SystemTime) -> Option<Ordering> {
-        self.inner.partial_cmp(&other.inner)
+        Some(self.cmp(other))
     }
 }
 

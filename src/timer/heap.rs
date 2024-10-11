@@ -66,7 +66,7 @@ impl<T: Ord> Heap<T> {
 
     pub fn peek(&self) -> Option<&T> {
         self.assert_consistent();
-        self.items.get(0).map(|i| &i.0)
+        self.items.first().map(|i| &i.0)
     }
 
     pub fn pop(&mut self) -> Option<T> {
@@ -161,10 +161,6 @@ impl<T: Ord> Heap<T> {
     }
 
     fn assert_consistent(&self) {
-        if !cfg!(assert_timer_heap_consistent) {
-            return;
-        }
-
         assert_eq!(
             self.items.len(),
             self.index

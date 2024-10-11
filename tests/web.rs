@@ -31,6 +31,16 @@ pub mod tokio_tests {
         });
     }
 
+    #[wasm_bindgen_test]
+    pub async fn test_micro_second_precision() {
+        initialize();
+        let a = Instant::now();
+        advance(Duration::from_micros(435)).await;
+        let b = Instant::now();
+        let diff = b - a;
+        assert_eq!(diff.as_micros(), 435);
+    }
+
     pub mod sleep_tests {
 
         use super::*;

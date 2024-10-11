@@ -7,3 +7,5 @@
 - 0.2.1 - Fixing the clippy warnings
         - fix: impl traits on SystemTime
         - Fix example inclusion
+- 0.3.0 - Added new methods (`checked_duration_since`, `saturating_duration_since`, `checked_add` and `checked_sub`) methods.
+        - Fixed micro seconds precision lost issue

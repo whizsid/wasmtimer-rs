@@ -7,7 +7,6 @@ pub(crate) use self::stack::Stack;
 
 use std::borrow::Borrow;
 use std::fmt::Debug;
-use std::usize;
 
 #[derive(Debug)]
 pub(crate) struct Wheel<T> {
@@ -201,7 +200,7 @@ fn level_for(elapsed: u64, when: u64) -> usize {
     significant / 6
 }
 
-#[cfg(all(test, not(loom)))]
+#[cfg(test)]
 mod test {
     use super::*;
 

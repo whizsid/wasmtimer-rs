@@ -21,8 +21,7 @@ pub(crate) fn clock() -> Clock {
     unsafe {
         let clock = Clock::from_raw(clock);
         let ret = clock.clone();
-        #[allow(clippy::drop_copy)]
-        drop(clock.into_raw());
+        let _ = clock.into_raw();
         ret
     }
 }

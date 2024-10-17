@@ -29,12 +29,12 @@ impl Interval {
     unsafe_pinned!(sleep: Sleep);
 
     /// Creates a new interval which will fire at `dur` time into the future,
-    /// and will repeat every `dur` interval after
+    /// and will repeat every `dur` interval after. The first tick completes immediately.
     ///
     /// The returned object will be bound to the default timer for this thread.
     /// The default timer will be spun up in a helper thread on first use.
     pub(crate) fn new(dur: Duration) -> Interval {
-        Interval::new_at(Instant::now() + dur, dur)
+        Interval::new_at(Instant::now(), dur)
     }
 
     /// Creates a new interval which will fire at the time specified by `at`,

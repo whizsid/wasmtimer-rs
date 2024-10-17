@@ -1,0 +1,15 @@
+{
+  "name": "nodejs-example",
+  "version": "1.0.0",
+  "description": "Testing Wamtimer With NodeJS",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "type": "module"
+}

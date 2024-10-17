@@ -2,6 +2,7 @@ mod utils;
 
 use std::time::Duration;
 
+use tokio;
 use wasm_bindgen::prelude::*;
 use wasmtimer::tokio::{interval, sleep, timeout};
 use web_sys::console::log_1;
@@ -48,4 +49,24 @@ pub async fn timeout_test() {
             )));
         }
     }
+}
+
+#[wasm_bindgen]
+pub async fn tokio_macros_test() {
+    log_1(&JsValue::from_str("Tokio macros start Rust"));
+    async fn some_async_work_1() {
+        sleep(Duration::from_secs(1)).await;
+    }
+    async fn some_async_work_2() {
+        sleep(Duration::from_secs(2)).await;
+    }
+    tokio::select! {
+        _ = some_async_work_1() => {
+            log_1(&JsValue::from_str("Tokio macros 1 second Rust"));
+        },
+        _ = some_async_work_2() => {
+            log_1(&JsValue::from_str("Tokio macros 2 second Rust"));
+        }
+    }
+    log_1(&JsValue::from_str("Tokio macros end Rust"));
 }

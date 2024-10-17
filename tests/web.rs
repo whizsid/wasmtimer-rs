@@ -115,14 +115,7 @@ pub mod tokio_tests {
             let mut interval = interval(Duration::from_millis(500));
             let mut fut = interval.tick();
             unsafe {
-                assert_eq!(Pin::new_unchecked(&mut fut).poll(&mut cx), Poll::Pending);
-            }
-            advance(Duration::from_millis(501)).await;
-            unsafe {
-                assert!(matches!(
-                    Pin::new_unchecked(&mut fut).poll(&mut cx),
-                    Poll::Ready(_)
-                ));
+                assert_ne!(Pin::new_unchecked(&mut fut).poll(&mut cx), Poll::Pending);
             }
             drop(fut);
             let mut fut2 = interval.tick();
@@ -133,6 +126,18 @@ pub mod tokio_tests {
             unsafe {
                 assert!(matches!(
                     Pin::new_unchecked(&mut fut2).poll(&mut cx),
+                    Poll::Ready(_)
+                ));
+            }
+            drop(fut2);
+            let mut fut3 = interval.tick();
+            unsafe {
+                assert_eq!(Pin::new_unchecked(&mut fut3).poll(&mut cx), Poll::Pending);
+            }
+            advance(Duration::from_millis(501)).await;
+            unsafe {
+                assert!(matches!(
+                    Pin::new_unchecked(&mut fut3).poll(&mut cx),
                     Poll::Ready(_)
                 ));
             }
@@ -186,6 +191,7 @@ pub mod tokio_tests {
             let mut cx = Context::from_waker(waker);
 
             let mut interval = interval(Duration::from_millis(500));
+            assert_ne!(interval.poll_tick(&mut cx), Poll::Pending);
             assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
             advance(Duration::from_millis(501)).await;
             assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
@@ -223,6 +229,7 @@ pub mod tokio_tests {
             let mut cx = Context::from_waker(waker);
 
             let mut interval = interval(Duration::from_millis(500));
+            assert_ne!(interval.poll_tick(&mut cx), Poll::Pending);
             assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
             advance(Duration::from_millis(301)).await;
             assert_eq!(interval.poll_tick(&mut cx), Poll::Pending);
@@ -264,6 +271,7 @@ pub mod tokio_tests {
             let mut interval = interval(Duration::from_millis(500));
             interval.set_missed_tick_behavior(MissedTickBehavior::Burst);
             advance(Duration::from_millis(1501)).await;
+            assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
             assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
             assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));
             assert!(matches!(interval.poll_tick(&mut cx), Poll::Ready(_)));

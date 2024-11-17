@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.4.1
+
+- Fixing the `set_timeout` failure on dev profile [#18](https://github.com/whizsid/wasmtimer-rs/issues/18), [#23](https://github.com/whizsid/wasmtimer-rs/pull/23).
+
 ## 0.4.0
 
 - Added a NodeJS example project [#19](https://github.com/whizsid/wasmtimer-rs/pull/19).

@@ -19,7 +19,7 @@ extern "C" {
         this: &GlobalScope,
         handler: &::js_sys::Function,
         timeout: i32,
-    ) -> Result<i32, wasm_bindgen::JsValue>;
+    ) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue>;
 }
 
 pub fn performance_now() -> f64 {
@@ -32,7 +32,7 @@ pub fn performance_now() -> f64 {
 pub fn set_timeout(
     handler: &::js_sys::Function,
     timeout: i32,
-) -> Result<i32, wasm_bindgen::JsValue> {
+) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue> {
     let global_this: Object = js_sys::global();
     let global_scope = global_this.unchecked_ref::<GlobalScope>();
     global_scope.set_timeout_with_callback_and_timeout_and_arguments_0(handler, timeout)

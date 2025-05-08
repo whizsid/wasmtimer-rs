@@ -42,13 +42,9 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
         let now = Instant::now();
         timer_lock.advance_to(now);
 
-        // Each call to `schedule_callback` calls `schedule_callback` again, but also leaves
-        // the possibility for `schedule_callback` to be called in parallel. Since we don't
-        // want too many useless callbacks, we...
-        // TODO: ugh, that's a hack
-        if Arc::strong_count(&timer) > 20 {
-            return;
-        }
+        // A previous version of this function recursed in such a way as the strong count increased
+        // From testing, this one doesn't (it remains at a constant 2)
+        assert!(Arc::strong_count(&timer) <= 20);
 
         // We call `schedule_callback` again for the next event.
         let sleep_dur = timer_lock
@@ -59,11 +55,13 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
                 } else {
                     Duration::new(0, 0)
                 }
-            })
-            .unwrap_or(Duration::from_secs(5));
+            });
         drop(timer_lock);
 
-        schedule_callback(timer, sleep_dur);
+        if let Some(sleep) = sleep_dur {
+            schedule_callback(timer, sleep);
+        }
+
     };
 
     #[cfg(feature = "tokio-test-util")]

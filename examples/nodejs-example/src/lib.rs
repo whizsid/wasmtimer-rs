@@ -3,8 +3,10 @@ mod utils;
 use std::time::Duration;
 
 use wasm_bindgen::prelude::*;
-use wasmtimer::tokio::{interval, sleep, timeout};
+use wasmtimer::std::Instant;
+use wasmtimer::tokio::{interval, sleep, sleep_until, timeout};
 use web_sys::console::log_1;
+use web_sys::window;
 
 #[wasm_bindgen]
 pub async fn sleep_test() {
@@ -47,5 +49,22 @@ pub async fn timeout_test() {
                 e
             )));
         }
+    }
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = ["globalThis", "performance"])]
+    fn now() -> f64;
+}
+
+#[wasm_bindgen]
+pub async fn arc_leak_test() {
+    let duration = Duration::from_millis(50);
+    for _ in 0..500 {
+        let deadline = Instant::now() + duration;
+        sleep_until(deadline).await;
+        let ms = now();
+        log_1(&JsValue::from_f64(ms));
     }
 }

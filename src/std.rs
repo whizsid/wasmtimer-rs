@@ -25,30 +25,8 @@ use std::time::Duration;
 
 use crate::js::performance_now;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash, Debug)]
 pub struct Instant(Duration);
-
-impl PartialEq for Instant {
-    fn eq(&self, other: &Instant) -> bool {
-        // Note that this will most likely only compare equal if we clone an `Instant`,
-        // but that's ok.
-        self.0 == other.0
-    }
-}
-
-impl Eq for Instant {}
-
-impl PartialOrd for Instant {
-    fn partial_cmp(&self, other: &Instant) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Instant {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.partial_cmp(&other.0).unwrap()
-    }
-}
 
 impl Instant {
     #[cfg(not(all(feature = "tokio-test-util", feature = "tokio")))]

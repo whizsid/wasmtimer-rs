@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.4.3
+
+- Update Instant derives [#29](https://github.com/whizsid/wasmtimer-rs/pull/29).
+
 ## 0.4.2
 
 - Fixed 'sleep_until() does not wake up until 5 seconds' issue [#22](https://github.com/whizsid/wasmtimer-rs/issues/22), [#27](https://github.com/whizsid/wasmtimer-rs/pull/27).

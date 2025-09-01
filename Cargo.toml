@@ -2,7 +2,7 @@
 name = "wasmtimer"
 edition = "2021"
 description = "Time utils from std::time, tokio::time and tokio_util::time on WASM targets"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["WhizSid <whizsid@aol.com>", "Pierre Krieger <pierre.krieger1708@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/whizsid/wasmtimer-rs"

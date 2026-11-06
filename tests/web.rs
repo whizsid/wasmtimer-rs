@@ -395,6 +395,42 @@ pub mod tokio_tests {
                 Poll::Ready(Err(_))
             ));
         }
+
+        #[wasm_bindgen_test]
+        async fn timeout_non_unpin_future_test() {
+            initialize();
+
+            let waker = noop_waker_ref();
+            let mut cx = Context::from_waker(waker);
+
+            for absolute in [false, true] {
+                for (inner_ms, timeout_ms, advance_ms, expected) in [
+                    (1000, 1500, 1001, Some(42)),
+                    (1500, 1000, 1001, None),
+                    // The inner future wins even when both futures are ready.
+                    (1000, 1500, 2001, Some(42)),
+                ] {
+                    let future = async {
+                        sleep(Duration::from_millis(inner_ms)).await;
+                        42
+                    };
+                    let duration = Duration::from_millis(timeout_ms);
+                    let fut = if absolute {
+                        timeout_at(Instant::now() + duration, future)
+                    } else {
+                        timeout(duration, future)
+                    };
+                    let mut fut = std::pin::pin!(fut);
+
+                    assert_eq!(fut.as_mut().poll(&mut cx), Poll::Pending);
+                    advance(Duration::from_millis(advance_ms)).await;
+                    assert_eq!(
+                        fut.as_mut().poll(&mut cx).map(|result| result.ok()),
+                        Poll::Ready(expected)
+                    );
+                }
+            }
+        }
     }
 
     #[cfg(feature = "tokio-util")]

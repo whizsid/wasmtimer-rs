@@ -1,5 +1,4 @@
 use futures::future::poll_fn;
-use pin_utils::unsafe_pinned;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
@@ -26,8 +25,6 @@ pub struct Interval {
 }
 
 impl Interval {
-    unsafe_pinned!(sleep: Sleep);
-
     /// Creates a new interval which will fire at `dur` time into the future,
     /// and will repeat every `dur` interval after. The first tick completes immediately.
     ///
@@ -56,7 +53,7 @@ impl Interval {
     }
 
     pub fn poll_tick(&mut self, cx: &mut Context<'_>) -> Poll<Instant> {
-        if Pin::new(&mut *self).sleep().poll(cx).is_pending() {
+        if Pin::new(&mut self.sleep).poll(cx).is_pending() {
             return Poll::Pending;
         }
 

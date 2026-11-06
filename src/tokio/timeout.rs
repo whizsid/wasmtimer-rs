@@ -1,24 +1,25 @@
 use std::{task::Poll, time::Duration};
 
 use futures::Future;
-use pin_utils::unsafe_pinned;
+use pin_project_lite::pin_project;
 
 use crate::std::Instant;
 
 use super::{error::Elapsed, Sleep};
 
-pub struct Timeout<T> {
-    delay: Sleep,
-    future: T,
+pin_project! {
+    pub struct Timeout<T> {
+        #[pin]
+        delay: Sleep,
+        #[pin]
+        future: T,
+    }
 }
 
 impl<F> Timeout<F>
 where
     F: Future,
 {
-    unsafe_pinned!(future: F);
-    unsafe_pinned!(delay: Sleep);
-
     pub(crate) fn new(dur: Duration, fut: F) -> Timeout<F> {
         Timeout {
             delay: Sleep::new(dur),
@@ -52,16 +53,14 @@ where
 {
     type Output = Result<T::Output, Elapsed>;
 
-    fn poll(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> Poll<Self::Output> {
-        match self.as_mut().future().poll(cx) {
+    fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
+        let this = self.project();
+        match this.future.poll(cx) {
             Poll::Pending => {}
             Poll::Ready(other) => return Poll::Ready(Ok(other)),
         }
 
-        if self.delay().poll(cx).is_ready() {
+        if this.delay.poll(cx).is_ready() {
             Poll::Ready(Err(Elapsed::new()))
         } else {
             Poll::Pending

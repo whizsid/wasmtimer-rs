@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.4.4
+
+- Replace pin-utils with pin-project-lite [#32](https://github.com/whizsid/wasmtimer-rs/pull/32)
+- Fix manual filter Clippy warning [#33](https://github.com/whizsid/wasmtimer-rs/pull/33)
+
 ## 0.4.3
 
 - Update Instant derives [#29](https://github.com/whizsid/wasmtimer-rs/pull/29).

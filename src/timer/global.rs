@@ -1,16 +1,23 @@
 use futures::task::{self, ArcWake};
 use parking_lot::Mutex;
+use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::Context;
 use std::time::Duration;
-use wasm_bindgen::{closure::Closure, JsCast};
+use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
-use crate::js::set_timeout;
+use crate::js::{clear_timeout, set_timeout};
 use crate::std::Instant;
 use crate::timer::{Timer, TimerHandle};
+
+// Handle returned by the outstanding `setTimeout`, if there is one.
+// `JsValue` is not `Send`, so it cannot live next to the timer.
+thread_local! {
+    static ARMED_TIMEOUT: RefCell<Option<JsValue>> = const { RefCell::new(None) };
+}
 
 /// Starts a background task, creates a `Timer`, and returns a handle to it.
 ///
@@ -24,10 +31,22 @@ pub(crate) fn run() -> TimerHandle {
     handle
 }
 
+fn disarm() {
+    if let Some(handle) = ARMED_TIMEOUT.with(|slot| slot.borrow_mut().take()) {
+        clear_timeout(&handle);
+    }
+}
+
 /// Calls `Window::setTimeout` with the given `Duration`. The callback wakes up the timer and
 /// processes everything.
 fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
+    // Cancel the previous callback before scheduling a new one.
+    disarm();
+
     let cb = move || {
+        // This callback is already running, so just forget the handle.
+        ARMED_TIMEOUT.with(|slot| drop(slot.borrow_mut().take()));
+
         let mut timer_lock = timer.lock();
 
         // We start by polling the timer. If any new `Delay` is created, the waker will be used
@@ -66,20 +85,15 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
     #[cfg(feature = "tokio-test-util")]
     if super::clock::clock().paused() {
         cb();
-    } else {
-        let _ = set_timeout(
-            Closure::once_into_js(cb).unchecked_ref(),
-            i32::try_from(when.as_millis()).unwrap_or(0),
-        )
-        .unwrap();
+        return;
     }
 
-    #[cfg(not(feature = "tokio-test-util"))]
-    let _ = set_timeout(
+    let handle = set_timeout(
         Closure::once_into_js(cb).unchecked_ref(),
         i32::try_from(when.as_millis()).unwrap_or(0),
     )
     .unwrap();
+    ARMED_TIMEOUT.with(|slot| *slot.borrow_mut() = Some(handle));
 }
 
 struct Waker {

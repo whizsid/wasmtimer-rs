@@ -3,8 +3,8 @@ mod utils;
 use std::time::Duration;
 
 use wasm_bindgen::prelude::*;
-use wasmtimer::std::Instant;
-use wasmtimer::tokio::{interval, sleep, sleep_until, timeout};
+use wasm_bindgen_futures::spawn_local;
+use wasmtimer::tokio::{interval, sleep, timeout};
 use web_sys::console::log_1;
 use web_sys::window;
 
@@ -58,12 +58,18 @@ extern "C" {
     fn now() -> f64;
 }
 
+/// A long sleep stays pending while shorter sleeps are started.
 #[wasm_bindgen]
 pub async fn arc_leak_test() {
     let duration = Duration::from_millis(50);
+    let duration_long = Duration::from_secs(50);
+
+    spawn_local(async move {
+        sleep(duration_long).await;
+    });
+
     for _ in 0..500 {
-        let deadline = Instant::now() + duration;
-        sleep_until(deadline).await;
+        sleep(duration).await;
         let ms = now();
         log_1(&JsValue::from_f64(ms));
     }

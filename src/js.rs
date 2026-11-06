@@ -20,6 +20,10 @@ extern "C" {
         handler: &::js_sys::Function,
         timeout: i32,
     ) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue>;
+
+    #[cfg(feature = "tokio")]
+    #[wasm_bindgen(method, js_name = clearTimeout)]
+    pub fn clear_timeout_with_handle(this: &GlobalScope, handle: &wasm_bindgen::JsValue);
 }
 
 pub fn performance_now() -> f64 {
@@ -36,4 +40,11 @@ pub fn set_timeout(
     let global_this: Object = js_sys::global();
     let global_scope = global_this.unchecked_ref::<GlobalScope>();
     global_scope.set_timeout_with_callback_and_timeout_and_arguments_0(handler, timeout)
+}
+
+#[cfg(feature = "tokio")]
+pub fn clear_timeout(handle: &wasm_bindgen::JsValue) {
+    let global_this: Object = js_sys::global();
+    let global_scope = global_this.unchecked_ref::<GlobalScope>();
+    global_scope.clear_timeout_with_handle(handle);
 }

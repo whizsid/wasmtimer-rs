@@ -3,10 +3,6 @@ use std::time::Duration;
 
 use crate::timer::clock::clock;
 
-pub fn is_paused() -> bool {
-    clock().paused()
-}
-
 pub fn pause() {
     let clock = clock();
     clock.pause();

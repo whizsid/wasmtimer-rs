@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.4.5
+
+- Fixing arc leak issue [#35](https://github.com/whizsid/wasmtimer-rs/pull/35)
+
 ## 0.4.4
 
 - Replace pin-utils with pin-project-lite [#32](https://github.com/whizsid/wasmtimer-rs/pull/32)
